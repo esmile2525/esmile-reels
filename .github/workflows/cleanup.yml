@@ -1,0 +1,32 @@
+# 古い動画ブランチの片付け（2026-10-10 神田さん了承：MP4 を GitHub に置く運用）
+# r-YYYYMMDD-*（予約用コピー）は7日、v-PPPP-YYYYMMDD-*（制作した動画）と t-YYYYMMDD*（コツ投稿の画像）は30日たったら消す。main は消さない。
+name: cleanup-old-branches
+on:
+  schedule:
+    - cron: '30 18 * * *'   # 毎日 3:30（日本時間）
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: delete old branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          today=$(TZ=Asia/Tokyo date +%Y%m%d)
+          d7=$(TZ=Asia/Tokyo date -d '7 days ago' +%Y%m%d)
+          d30=$(TZ=Asia/Tokyo date -d '30 days ago' +%Y%m%d)
+          gh api --paginate "repos/$REPO/branches?per_page=100" --jq '.[].name' | while read b; do
+            case "$b" in
+              r-*) d=$(echo "$b" | sed -n 's/^r-\([0-9]\{8\}\).*/\1/p'); lim=$d7 ;;
+              v-*) d=$(echo "$b" | sed -n 's/^v-[0-9]\{4\}-\([0-9]\{8\}\).*/\1/p'); lim=$d30 ;;
+              t-*) d=$(echo "$b" | sed -n 's/^t-\([0-9]\{8\}\).*/\1/p'); lim=$d30 ;;
+              *) continue ;;
+            esac
+            if [ -n "$d" ] && [ "$d" -lt "$lim" ]; then
+              echo "delete $b"; gh api -X DELETE "repos/$REPO/git/refs/heads/$b" || true
+            fi
+          done
