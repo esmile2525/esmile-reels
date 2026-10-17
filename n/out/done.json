@@ -1,0 +1,9 @@
+{
+ "ok": true,
+ "voice": "Kore",
+ "rate": 1.0,
+ "model": null,
+ "files": [
+  "00.mp3"
+ ]
+}
