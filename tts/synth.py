@@ -3,6 +3,7 @@
 n-* ブランチの n/req.json を読み、1行ずつ音声（MP3）を作って n/out/ に置く。
 APIキーは GitHub の Secrets（GOOGLE_TTS_KEY）だけに置く。ファイル・ログには書かない。
 req.json: {"voice": "Kore", "rate": 1.1, "lines": ["文1", "文2", ...]}
+  任意: "model": "gemini-2.5-flash-tts" など（Gemini の声。指定がなければ Chirp 3 HD）、"prompt": "話し方の指示"
 出力:     n/out/00.mp3, 01.mp3, ... と n/out/done.json（{"ok": true, "files": [...]} か {"ok": false, "error": "..."}）
 """
 import base64, json, os, sys, urllib.request, urllib.error
@@ -22,13 +23,19 @@ def main():
     voice = req.get('voice') or 'Kore'
     rate = float(req.get('rate') or 1.0)
     lines = [str(t).strip() for t in req.get('lines') or [] if str(t).strip()]
+    model, prompt = req.get('model'), req.get('prompt')
     if not lines:
         return done({'ok': False, 'error': 'lines が空です'})
     files = []
     for i, t in enumerate(lines):
-        body = {'input': {'text': t},
-                'voice': {'languageCode': 'ja-JP', 'name': f'ja-JP-Chirp3-HD-{voice}'},
-                'audioConfig': {'audioEncoding': 'MP3', 'speakingRate': rate, 'sampleRateHertz': 24000}}
+        if model:
+            body = {'input': {'text': t, **({'prompt': prompt} if prompt else {})},
+                    'voice': {'languageCode': 'ja-JP', 'name': voice, 'modelName': model},
+                    'audioConfig': {'audioEncoding': 'MP3', 'speakingRate': rate}}
+        else:
+            body = {'input': {'text': t},
+                    'voice': {'languageCode': 'ja-JP', 'name': f'ja-JP-Chirp3-HD-{voice}'},
+                    'audioConfig': {'audioEncoding': 'MP3', 'speakingRate': rate, 'sampleRateHertz': 24000}}
         r = urllib.request.Request(URL, data=json.dumps(body).encode(),
                                    headers={'Content-Type': 'application/json', 'X-Goog-Api-Key': KEY})
         try:
@@ -42,7 +49,7 @@ def main():
         f = f'{i:02d}.mp3'
         open(os.path.join('n/out', f), 'wb').write(audio)
         files.append(f)
-    done({'ok': True, 'voice': voice, 'rate': rate, 'files': files})
+    done({'ok': True, 'voice': voice, 'rate': rate, 'model': model, 'files': files})
 
 if __name__ == '__main__':
     main()
