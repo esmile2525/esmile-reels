@@ -1,5 +1,5 @@
 # 古い動画ブランチの片付け（2026-10-10 神田さん了承：MP4 を GitHub に置く運用）
-# r-YYYYMMDD-*（予約用コピー）は7日、v-PPPP-YYYYMMDD-*（制作した動画）と t-YYYYMMDD*（コツ投稿の画像）は30日たったら消す。main は消さない。
+# r-YYYYMMDD-*（予約用コピー）と n-YYYYMMDD-*（ナレーション音声）は7日、v-PPPP-YYYYMMDD-*（制作した動画）と t-YYYYMMDD*（コツ投稿の画像）は30日たったら消す。main は消さない。
 name: cleanup-old-branches
 on:
   schedule:
@@ -24,6 +24,7 @@ jobs:
               r-*) d=$(echo "$b" | sed -n 's/^r-\([0-9]\{8\}\).*/\1/p'); lim=$d7 ;;
               v-*) d=$(echo "$b" | sed -n 's/^v-[0-9]\{4\}-\([0-9]\{8\}\).*/\1/p'); lim=$d30 ;;
               t-*) d=$(echo "$b" | sed -n 's/^t-\([0-9]\{8\}\).*/\1/p'); lim=$d30 ;;
+              n-*) d=$(echo "$b" | sed -n 's/^n-\([0-9]\{8\}\).*/\1/p'); lim=$d7 ;;
               *) continue ;;
             esac
             if [ -n "$d" ] && [ "$d" -lt "$lim" ]; then
