@@ -1,0 +1,30 @@
+# ナレーション係（2026-10-17 神田さん決定：Google Cloud TTS Chirp 3 HD・Kore）
+# 制作係が n-YYYYMMDD-{id} ブランチに n/req.json を push すると、音声を作って同じブランチに n/out/ を push し返す。
+# APIキーは Secrets の GOOGLE_TTS_KEY。n-* ブランチは cleanup.yml が7日で消す。
+name: narration-tts
+on:
+  push:
+    branches: ['n-*']
+    paths: ['n/req.json']
+permissions:
+  contents: write
+concurrency:
+  group: tts-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: synthesize
+        env:
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+        run: python3 tts/synth.py
+      - name: push result
+        run: |
+          git config user.name "e-Smile narration bot"
+          git config user.email "esmile0202@gmail.com"
+          git add n/out
+          git commit -qm "tts result ${GITHUB_REF_NAME}"
+          git push -q origin "HEAD:${GITHUB_REF_NAME}"
